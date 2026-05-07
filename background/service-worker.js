@@ -26,25 +26,18 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(
   async (info) => {
-    // Only count if extension is enabled and the action was a block
+    // Only count static ruleset matches (all blocks) not dynamic (whitelist allow rules)
+    if (info.rule.rulesetId !== "main_rules") return;
     if (info.request.type === "main_frame") return;
 
     const { enabled, blockedCount, dailyStats } = await chrome.storage.local.get([
-      "enabled", "blockedCount", "dailyStats"
-    ]);
-
+      "enabled", "blockedCount", "dailyStats"]);
     if (!enabled) return;
 
-    // Increment total count
-    const newCount = (blockedCount || 0) + 1;
-
-    // Increment today's count
-    const today = new Date().toISOString().split("T")[0]; // "2025-04-22"
-    const newDaily = { ...dailyStats, [today]: (dailyStats[today] || 0) + 1 };
-
+    const today = new Date().toISOString().split("T")[0];
     await chrome.storage.local.set({
-      blockedCount: newCount,
-      dailyStats: newDaily
+      blockedCount: (blockedCount || 0) + 1,
+      dailyStats: { ...dailyStats, [today]: (dailyStats[today] || 0) + 1 }
     });
   }
 );
@@ -118,29 +111,38 @@ async function handleMessage(message) {
 // --------------- Whitelist Rule Helpers ---------------
 
 async function addWhitelistRule(hostname, ruleId) {
+  // First remove any existing rule for this hostname to avoid duplicates
+  await removeWhitelistRule(hostname);
+
   await chrome.declarativeNetRequest.updateDynamicRules({
     addRules: [{
       id: ruleId,
-      priority: 10, // Higher than our blocking rules (priority 1)
+      priority: 10,
       action: { type: "allow" },
       condition: {
-        requestDomains: [hostname],
-        resourceTypes: ["main_frame", "sub_frame", "script", "image", "xmlhttprequest"]
+        initiatorDomains: [hostname],
+        resourceTypes: [
+          "main_frame", "sub_frame", "script",
+          "image", "xmlhttprequest", "stylesheet", "font", "media"
+        ]
       }
     }],
     removeRuleIds: []
   });
+  console.log(`[AdBlocker] Whitelisted: ${hostname} with rule ID ${ruleId}`);
 }
 
 async function removeWhitelistRule(hostname) {
   const rules = await chrome.declarativeNetRequest.getDynamicRules();
-  const ruleToRemove = rules.find(r =>
-    r.condition.requestDomains && r.condition.requestDomains.includes(hostname)
-  );
-  if (ruleToRemove) {
+  const toRemove = rules
+    .filter(r => r.condition.initiatorDomains?.includes(hostname))
+    .map(r => r.id);
+
+  if (toRemove.length > 0) {
     await chrome.declarativeNetRequest.updateDynamicRules({
       addRules: [],
-      removeRuleIds: [ruleToRemove.id]
+      removeRuleIds: toRemove
     });
+    console.log(`[AdBlocker] Removed whitelist rule(s) for: ${hostname}`, toRemove);
   }
 }
