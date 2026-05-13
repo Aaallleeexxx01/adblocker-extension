@@ -23,6 +23,45 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
+// Re-apply whitelist rules on browser startup
+chrome.runtime.onStartup.addListener(async () => {
+  const { whitelist, customRules } = await chrome.storage.local.get([
+    "whitelist", "customRules"
+  ]);
+
+  // Clear ALL existing dynamic rules first to avoid ID conflicts
+  const existing = await chrome.declarativeNetRequest.getDynamicRules();
+  if (existing.length > 0) {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existing.map(r => r.id),
+      addRules: []
+    });
+  }
+
+  // Re-apply whitelist rules
+  for (let i = 0; i < (whitelist || []).length; i++) {
+    await addWhitelistRule(whitelist[i], i + 1001);
+  }
+
+  // Re-apply custom block rules
+  for (const rule of (customRules || [])) {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      addRules: [{
+        id: rule.ruleId,
+        priority: 5,
+        action: { type: "block" },
+        condition: {
+          urlFilter: `||${rule.domain}^`,
+          resourceTypes: ["script", "image", "xmlhttprequest", "sub_frame", "stylesheet", "font", "media"]
+        }
+      }],
+      removeRuleIds: []
+    });
+  }
+
+  console.log("[AdBlocker] Rules restored after browser restart.");
+});
+
 // --------------- Blocked Ads Counter ---------------
 // declarativeNetRequestFeedback lets us listen to which rules fired.
 // We use this to increment our counter whenever a request is blocked.
@@ -86,12 +125,10 @@ async function handleMessage(message) {
       const newEnabled = !enabled;
       await chrome.storage.local.set({ enabled: newEnabled });
 
-      // Enable or disable the static ruleset based on the toggle
-      if (newEnabled) {
-        await chrome.declarativeNetRequest.enableRulesets(["main_rules"]);
-      } else {
-        await chrome.declarativeNetRequest.disableRulesets(["main_rules"]);
-      }
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        enableRulesetIds: newEnabled ? ["main_rules"] : [],
+        disableRulesetIds: newEnabled ? [] : ["main_rules"]
+      });
 
       return { enabled: newEnabled };
     }
@@ -122,20 +159,10 @@ async function handleMessage(message) {
     }
 
     case "resetStats": {
-      // Remove all dynamic custom rule IDs from declarativeNetRequest
-      const { customRules } = await chrome.storage.local.get("customRules");
-      const ids = (customRules || []).map(r => r.ruleId);
-      if (ids.length > 0) {
-        await chrome.declarativeNetRequest.updateDynamicRules({
-          addRules: [],
-          removeRuleIds: ids
-        });
-      }
       await chrome.storage.local.set({
         blockedCount: 0,
         dailyStats: {},
-        siteStats: {},
-        customRules: []
+        siteStats: {}
       });
       return { success: true };
     }
