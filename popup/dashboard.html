@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdBlocker — Statistics</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+            <div class="logo">
+                <img src="../icons/icon48.png" width="28" height="28" alt="AdBlocker">
+                <span>AdBlocker <em>Statistics</em></span>
+            </div>
+            <button id="backBtn" class="btn btn-secondary">← Back</button>
+        </header>
+
+        <!-- Summary cards -->
+        <section class="summary">
+            <div class="card">
+                <span class="card-number" id="totalBlocked">0</span>
+                <span class="card-label">Total Blocked</span>
+            </div>
+            <div class="card">
+                <span class="card-number" id="todayBlocked">0</span>
+                <span class="card-label">Today</span>
+            </div>
+            <div class="card">
+                <span class="card-number" id="bestDay">0</span>
+                <span class="card-label">Best Day</span>
+            </div>
+            <div class="card">
+                <span class="card-number" id="sitesTracked">0</span>
+                <span class="card-label">Sites Tracked</span>
+            </div>
+        </section>
+
+        <!-- Bar chart -->
+        <section class="chart-section">
+            <h2>Last 7 Days</h2>
+            <div class="chart-wrapper">
+                <canvas id="barChart" width="640" height="220"></canvas>
+            </div>
+        </section>
+
+        <!-- Per-site breakdown -->
+        <section class="sites-section">
+            <h2>Top Sites</h2>
+            <div id="sitesList" class="sites-list">
+                <p class="empty">No data yet — browse some sites first!</p>
+            </div>
+        </section>
+
+        <!-- Custom Filter Rules -->
+        <section class="sites-section">
+            <h2>Custom Block Rules</h2>
+
+            <div class="custom-input-row">
+                <input type="text" id="customRuleInput" class="rule-input" placeholder="e.g. annoyingads.com"
+                    autocomplete="off" spellcheck="false" />
+                <button id="addRuleBtn" class="btn btn-add">+ Add Rule</button>
+            </div>
+
+            <div id="customRulesList" class="custom-rules-list">
+                <p class="empty">No custom rules yet.</p>
+            </div>
+        </section>
+
+        <!-- Reset -->
+        <footer>
+            <button id="resetAllBtn" class="btn btn-danger">Reset All Statistics</button>
+        </footer>
+
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

@@ -9,7 +9,10 @@ const DEFAULT_STATE = {
   enabled: true,
   blockedCount: 0,
   whitelist: [],        // array of hostnames, e.g. ["example.com"]
-  dailyStats: {}        // { "2025-04-22": 42, ... }
+  dailyStats: {},        // { "2025-04-22": 42, ... }
+  siteStats: {},
+  customRules: []
+
 };
 
 // Initialize storage with defaults on first install
@@ -26,18 +29,38 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(
   async (info) => {
-    // Only count static ruleset matches (all blocks) not dynamic (whitelist allow rules)
     if (info.rule.rulesetId !== "main_rules") return;
     if (info.request.type === "main_frame") return;
 
-    const { enabled, blockedCount, dailyStats } = await chrome.storage.local.get([
-      "enabled", "blockedCount", "dailyStats"]);
+    const { enabled, blockedCount, dailyStats, siteStats } =
+      await chrome.storage.local.get([
+        "enabled", "blockedCount", "dailyStats", "siteStats"
+      ]);
+
     if (!enabled) return;
 
+    // Daily stats
     const today = new Date().toISOString().split("T")[0];
+    const newDaily = {
+      ...dailyStats,
+      [today]: (dailyStats?.[today] || 0) + 1
+    };
+
+    // Per-site stats — extract hostname from initiator
+    let hostname = "unknown";
+    try {
+      if (info.request.initiator) {
+        hostname = new URL(info.request.initiator).hostname;
+      }
+    } catch (e) { }
+
+    const newSiteStats = { ...siteStats };
+    newSiteStats[hostname] = (newSiteStats[hostname] || 0) + 1;
+
     await chrome.storage.local.set({
       blockedCount: (blockedCount || 0) + 1,
-      dailyStats: { ...dailyStats, [today]: (dailyStats[today] || 0) + 1 }
+      dailyStats: newDaily,
+      siteStats: newSiteStats
     });
   }
 );
@@ -99,8 +122,77 @@ async function handleMessage(message) {
     }
 
     case "resetStats": {
-      await chrome.storage.local.set({ blockedCount: 0, dailyStats: {} });
+      // Remove all dynamic custom rule IDs from declarativeNetRequest
+      const { customRules } = await chrome.storage.local.get("customRules");
+      const ids = (customRules || []).map(r => r.ruleId);
+      if (ids.length > 0) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          addRules: [],
+          removeRuleIds: ids
+        });
+      }
+      await chrome.storage.local.set({
+        blockedCount: 0,
+        dailyStats: {},
+        siteStats: {},
+        customRules: []
+      });
       return { success: true };
+    }
+
+    case "addCustomRule": {
+      const { domain } = message;
+      const { customRules } = await chrome.storage.local.get("customRules");
+      const list = customRules || [];
+
+      if (list.some(r => r.domain === domain)) return { error: "Already exists" };
+
+      const ruleId = 5000 + list.length + 1;
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        addRules: [{
+          id: ruleId,
+          priority: 5,
+          action: { type: "block" },
+          condition: {
+            urlFilter: `||${domain}^`,
+            resourceTypes: [
+              "script", "image", "xmlhttprequest",
+              "sub_frame", "stylesheet", "font", "media"
+            ]
+          }
+        }],
+        removeRuleIds: []
+      });
+
+      await chrome.storage.local.set({
+        customRules: [...list, { domain, ruleId }]
+      });
+
+      return { success: true };
+    }
+
+    case "removeCustomRule": {
+      const { domain } = message;
+      const { customRules } = await chrome.storage.local.get("customRules");
+      const list = customRules || [];
+      const rule = list.find(r => r.domain === domain);
+
+      if (rule) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          addRules: [],
+          removeRuleIds: [rule.ruleId]
+        });
+        await chrome.storage.local.set({
+          customRules: list.filter(r => r.domain !== domain)
+        });
+      }
+
+      return { success: true };
+    }
+
+    case "getCustomRules": {
+      const { customRules } = await chrome.storage.local.get("customRules");
+      return { customRules: customRules || [] };
     }
 
     default:

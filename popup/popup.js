@@ -103,5 +103,5 @@ whitelistBtn.addEventListener("click", async () => {
 
 // ── Dashboard button ──
 dashboardBtn.addEventListener("click", () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL("popup/popup.html?dashboard=true") });
+  chrome.tabs.create({ url: chrome.runtime.getURL("popup/dashboard.html") });
 });
