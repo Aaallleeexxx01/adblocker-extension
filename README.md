@@ -1,11 +1,13 @@
 # adblocker-extension
 Chrome MV3 ad blocker – thesis project
 ## Features
--  Network-level ad blocking using declarativeNetReques (260 rules)
+-  Network-level ad blocking using declarativeNetRequest (260 rules)
 -  Popup UI with enable/disable toggle and live blocked ads counter
 -  Per-site whitelist
 -  Cosmetic filtering to hide leftover ad containers
 -  JavaScript popup blocking
+- Statistics dashboard with bar chart and per-site breakdown
+- Custom user-defined block rules
 
  ## How to install
 1. Clone this repo
@@ -19,17 +21,6 @@ Chrome MV3 ad blocker – thesis project
 - `declarativeNetRequest` API for network blocking
 - `MutationObserver` for cosmetic filtering
 
-## Project structure
-adblocker/
-├── manifest.json          # Extension config
-├── background/
-│   └── service-worker.js  # State, counter, whitelist logic
-├── content/
-│   └── content-script.js  # Cosmetic filtering + popup blocking
-├── popup/
-│   ├── popup.html         # UI
-│   ├── popup.js           # UI logic
-│   └── popup.css          # Styling
-├── rules/
-│   └── rules.json         # 260 blocking rules
-└── icons/
+## AI Usage
+Claude AI (claude.ai, Anthropic) was used as a development assistant 
+during the implementation phase of this project
