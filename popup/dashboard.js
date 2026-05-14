@@ -1,7 +1,3 @@
-// =============================================================
-// Dashboard Script — Statistics page
-// =============================================================
-
 document.addEventListener("DOMContentLoaded", async () => {
   const state = await chrome.runtime.sendMessage({ action: "getState" });
   renderDashboard(state);
@@ -12,7 +8,6 @@ function renderDashboard(state) {
   const { blockedCount, dailyStats, siteStats } = state;
   const today = new Date().toISOString().split("T")[0];
 
-  // ── Summary cards ──
   document.getElementById("totalBlocked").textContent =
     (blockedCount || 0).toLocaleString();
 
@@ -25,21 +20,17 @@ function renderDashboard(state) {
   document.getElementById("sitesTracked").textContent =
     Object.keys(siteStats || {}).length;
 
-  // ── Bar chart ──
   drawBarChart(dailyStats || {});
 
-  // ── Per-site list ──
   renderSitesList(siteStats || {});
 }
 
-// ── Bar Chart using Canvas API ──
 function drawBarChart(dailyStats) {
   const canvas = document.getElementById("barChart");
   const ctx = canvas.getContext("2d");
   const W = canvas.width;
   const H = canvas.height;
 
-  // Get last 7 days
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -58,10 +49,8 @@ function drawBarChart(dailyStats) {
   const barW = chartW / days.length * 0.6;
   const gap = chartW / days.length;
 
-  // Clear
   ctx.clearRect(0, 0, W, H);
 
-  // Gridlines
   ctx.strokeStyle = "#2a2d3e";
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
@@ -71,7 +60,6 @@ function drawBarChart(dailyStats) {
     ctx.lineTo(W - padding.right, y);
     ctx.stroke();
 
-    // Y-axis labels
     const val = Math.round(maxVal - (maxVal / 4) * i);
     ctx.fillStyle = "#8891a8";
     ctx.font = "11px system-ui";
@@ -79,13 +67,11 @@ function drawBarChart(dailyStats) {
     ctx.fillText(val, padding.left - 6, y + 4);
   }
 
-  // Bars
   days.forEach((day, i) => {
     const barH = (day.value / maxVal) * chartH;
     const x = padding.left + gap * i + (gap - barW) / 2;
     const y = padding.top + chartH - barH;
 
-    // Bar fill with gradient
     const grad = ctx.createLinearGradient(0, y, 0, y + barH);
     grad.addColorStop(0, "#4f8ef7");
     grad.addColorStop(1, "#2a5bd7");
@@ -94,7 +80,6 @@ function drawBarChart(dailyStats) {
     ctx.roundRect(x, y, barW, barH, [4, 4, 0, 0]);
     ctx.fill();
 
-    // Value label on top of bar
     if (day.value > 0) {
       ctx.fillStyle = "#e8eaf0";
       ctx.font = "11px system-ui";
@@ -102,7 +87,6 @@ function drawBarChart(dailyStats) {
       ctx.fillText(day.value, x + barW / 2, y - 6);
     }
 
-    // Day label below
     ctx.fillStyle = "#8891a8";
     ctx.font = "12px system-ui";
     ctx.textAlign = "center";
@@ -110,7 +94,6 @@ function drawBarChart(dailyStats) {
   });
 }
 
-// ── Per-site breakdown ──
 function renderSitesList(siteStats) {
   const container = document.getElementById("sitesList");
 
@@ -136,12 +119,10 @@ function renderSitesList(siteStats) {
   `).join("");
 }
 
-// ── Back button ──
 document.getElementById("backBtn").addEventListener("click", () => {
   window.close();
 });
 
-// ── Reset button ──
 document.getElementById("resetAllBtn").addEventListener("click", async () => {
   const first = confirm("This will delete ALL statistics including total blocked count and all site data. Are you sure?");
   if (!first) return;
@@ -151,7 +132,6 @@ document.getElementById("resetAllBtn").addEventListener("click", async () => {
   window.location.reload();
 });
 
-// ── Custom Rules ──
 async function renderCustomRules() {
   const { customRules } = await chrome.runtime.sendMessage({ action: "getCustomRules" });
   const container = document.getElementById("customRulesList");
@@ -168,7 +148,6 @@ async function renderCustomRules() {
     </div>
   `).join("");
 
-  // Attach remove listeners
   container.querySelectorAll(".btn-remove").forEach(btn => {
     btn.addEventListener("click", async () => {
       const domain = btn.dataset.domain;
@@ -178,12 +157,10 @@ async function renderCustomRules() {
   });
 }
 
-// ── Add rule button ──
 document.getElementById("addRuleBtn").addEventListener("click", async () => {
   await addCustomRule();
 });
 
-// ── Allow pressing Enter in the input ──
 document.getElementById("customRuleInput").addEventListener("keydown", async (e) => {
   if (e.key === "Enter") await addCustomRule();
 });
@@ -192,15 +169,13 @@ async function addCustomRule() {
   const input = document.getElementById("customRuleInput");
   let domain = input.value.trim().toLowerCase();
 
-  // Strip http/https/www if user pasted a full URL
   domain = domain
     .replace(/^https?:\/\//, "")
     .replace(/^www\./, "")
-    .split("/")[0]; // remove any path
+    .split("/")[0]; 
 
   if (!domain) return;
 
-  // Basic validation
   if (!domain.includes(".")) {
     alert("Please enter a valid domain like: example.com");
     return;

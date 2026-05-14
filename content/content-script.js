@@ -1,13 +1,7 @@
-// =============================================================
-// Content Script — Cosmetic Filtering + Popup Blocking
-// =============================================================
 
-// ── 1. Aggressively block all popup/tab-opening methods ──
 (function() {
-  // Block window.open entirely
   window.open = function() { return null; };
 
-  // Block form submissions that open new tabs
   document.addEventListener("submit", (e) => {
     const form = e.target;
     if (form.target === "_blank") {
@@ -15,7 +9,6 @@
     }
   }, true);
 
-  // Block middle-click and ctrl+click hijacking
   document.addEventListener("auxclick", (e) => {
     if (e.button === 1) {
       const el = e.target.closest("a");
@@ -26,19 +19,16 @@
     }
   }, true);
 
-  // Intercept all clicks on links that look like ads
   document.addEventListener("click", (e) => {
     const el = e.target.closest("a");
     if (!el) return;
 
-    // Block links that open new tabs to suspicious URLs
     if (el.target === "_blank" && el.href && isAdLink(el.href)) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
 
-    // Block javascript: links (common popup trick)
     if (el.href && el.href.startsWith("javascript:")) {
       const code = el.href.slice("javascript:".length);
       if (/window\.open|popup|ad/i.test(code)) {
@@ -48,7 +38,6 @@
     }
   }, true);
 
-  // Override addEventListener to catch dynamically added popups
   const _addEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function(type, listener, options) {
     if (type === "click" && this === document) {
@@ -74,7 +63,6 @@
   }
 })();
 
-// ── 2. Cosmetic filtering — hide ad elements ──
 const AD_SELECTORS = [
   ".ad", ".ads", ".ad-container", ".ad-wrapper", ".advertisement",
   ".adsbygoogle", ".ad-slot", ".ad-unit", ".ad-banner",
@@ -102,7 +90,6 @@ function hideAdElements() {
   } catch(e) {}
 }
 
-// ── 3. Observer ──
 function startObserver() {
   try {
     const target = document.body || document.documentElement;
