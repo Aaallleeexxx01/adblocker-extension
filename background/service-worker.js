@@ -1,8 +1,8 @@
 const DEFAULT_STATE = {
   enabled: true,
   blockedCount: 0,
-  whitelist: [],       
-  dailyStats: {},        
+  whitelist: [],
+  dailyStats: {},
   siteStats: {},
   customRules: []
 

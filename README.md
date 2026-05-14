@@ -1,4 +1,4 @@
-## adblocker-extension
+# adblocker-extension
 Chrome MV3 ad blocker – thesis project
 
 ## Features
@@ -10,7 +10,7 @@ Chrome MV3 ad blocker – thesis project
 - Statistics dashboard with bar chart and per-site breakdown
 - Custom user-defined block rules
 
- ## How to install
+## How to install
 1. Clone this repo
 2. Open Chrome → `chrome://extensions`
 3. Enable Developer Mode

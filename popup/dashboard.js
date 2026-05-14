@@ -100,7 +100,7 @@ function renderSitesList(siteStats) {
   const sorted = Object.entries(siteStats)
     .filter(([host]) => host !== "unknown")
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 10); // top 10
+    .slice(0, 10); 
 
   if (sorted.length === 0) {
     container.innerHTML = `<p class="empty">No data yet — browse some sites first!</p>`;
